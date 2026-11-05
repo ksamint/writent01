@@ -56,6 +56,25 @@ wrangler pages deploy public
 
 Update `public/_redirects` with your Worker URL, then re-deploy Pages.
 
+### Deploying updates / 日常部署
+
+There is no GitHub Actions workflow (owner decision 2026-11-05); deploys run from the operator's
+machine:
+
+```bash
+export CLOUDFLARE_API_TOKEN=...   # from your shell or secret manager, never committed
+export CLOUDFLARE_ACCOUNT_ID=...
+npm run deploy                    # = scripts/deploy.sh all: worker, seed, pages
+scripts/deploy.sh worker          # npm install + wrangler deploy
+scripts/deploy.sh seed            # wrangler d1 execute writer-tracker-db --file=data/seed.sql
+scripts/deploy.sh pages           # wrangler pages deploy public --project-name=writer-tracker
+```
+
+The script refuses unless `main` or `initial-commit` is checked out, the working tree is clean and
+`HEAD` equals `origin/<branch>`, and it builds from a clean `git archive` export of `HEAD`. The
+`seed` step runs without `--remote`, as the old workflow did, so with wrangler 3 it only touches
+local D1 state; seed the production database by hand with `--remote` when needed.
+
 ### Email (Optional)
 
 Set `SENDING_DOMAIN` and `MAIL_TO` in `wrangler.toml` [vars]. Requires Cloudflare DNS with SPF record for MailChannels.

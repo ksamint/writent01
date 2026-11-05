@@ -10,7 +10,11 @@
     "cf:deploy": "wrangler deploy",
     "cf:db:create": "wrangler d1 create writer-tracker-db",
     "cf:db:seed": "wrangler d1 execute writer-tracker-db --file=data/seed.sql",
-    "cf:pages:deploy": "wrangler pages deploy public"
+    "cf:pages:deploy": "wrangler pages deploy public",
+    "deploy": "bash scripts/deploy.sh all",
+    "deploy:worker": "bash scripts/deploy.sh worker",
+    "deploy:seed": "bash scripts/deploy.sh seed",
+    "deploy:pages": "bash scripts/deploy.sh pages"
   },
   "dependencies": {
     "cors": "^2.8.5",
