@@ -1,6 +1,0 @@
-# Cloudflare Pages Redirects
-# This file proxies API requests to the Cloudflare Worker
-
-/api/*  https://writer-tracker-api.YOUR_SUBDOMAIN.workers.dev/api/*  200
-/mcp/*  https://writer-tracker-api.YOUR_SUBDOMAIN.workers.dev/mcp/*  200
-/*      /index.html   200

@@ -9,71 +9,51 @@
 - **REST API** - Full CRUD operations for content management
 - **MCP Tool** - Machine Context Protocol for AI integration
 - **Update Tracking / 更新追踪** - RSS feed monitoring
-- **Cloudflare Native / Cloudflare 原生** - Workers + D1 + Pages
+- **Cloudflare Native / Cloudflare 原生** - Workers (API + static assets) + D1
 - **Git Auto-push / Git 自动推送** - Version control integration
 
 ## Deploy to Cloudflare / 部署到 Cloudflare
 
-### Prerequisites
+One Worker serves both the API (`/api`, `/mcp`) and the UI in `public/` (Workers static
+assets), so the page calls the API on its own origin. There is no separate Pages site.
+
+### 1. Create the D1 database (once)
 
 ```bash
-npm install -g wrangler
+npx wrangler d1 create writer-tracker-db
 ```
 
-### 1. Create D1 Database
+Keep the printed `database_id` for `CLOUDFLARE_D1_DATABASE_ID` below. Do not write it into
+`wrangler.toml`: it holds a `${CLOUDFLARE_D1_DATABASE_ID}` placeholder (wrangler does not expand
+it), which `scripts/deploy.sh` fills in inside its throwaway export.
+
+### 2. Set the API key secret (once)
 
 ```bash
-wrangler d1 create writer-tracker-db
-# Copy the database_id into wrangler.toml [[d1_databases]]
+npx wrangler secret put WRITER_TRACKER_API_KEY
 ```
 
-### 2. Deploy Worker
+Write endpoints answer 500 "API key not configured" until it is set.
 
-```bash
-npm install
-wrangler deploy
-```
-
-### 3. Seed Database
-
-```bash
-wrangler d1 execute writer-tracker-db --file=data/seed.sql
-```
-
-### 4. Set Secrets
-
-```bash
-wrangler secret put WRITER_TRACKER_API_KEY
-```
-
-### 5. Deploy Frontend (Pages)
-
-```bash
-wrangler pages deploy public
-```
-
-### 6. Configure Pages Redirects
-
-Update `public/_redirects` with your Worker URL, then re-deploy Pages.
-
-### Deploying updates / 日常部署
+### 3. Deploy / 部署
 
 There is no GitHub Actions workflow (owner decision 2026-11-05); deploys run from the operator's
 machine:
 
 ```bash
-export CLOUDFLARE_API_TOKEN=...   # from your shell or secret manager, never committed
+export CLOUDFLARE_API_TOKEN=...       # from your shell or secret manager, never committed
 export CLOUDFLARE_ACCOUNT_ID=...
-npm run deploy                    # = scripts/deploy.sh all: worker, seed, pages
-scripts/deploy.sh worker          # npm install + wrangler deploy
-scripts/deploy.sh seed            # wrangler d1 execute writer-tracker-db --file=data/seed.sql
-scripts/deploy.sh pages           # wrangler pages deploy public --project-name=writer-tracker
+export CLOUDFLARE_D1_DATABASE_ID=...  # writer-tracker-db UUID from `npx wrangler d1 list`
+npm run deploy                        # = scripts/deploy.sh all: worker, seed
+scripts/deploy.sh worker              # npm install + wrangler deploy (API + UI)
+scripts/deploy.sh seed                # remote D1: schema, then data/seed.sql if empty
 ```
 
 The script refuses unless `main` or `initial-commit` is checked out, the working tree is clean and
-`HEAD` equals `origin/<branch>`, and it builds from a clean `git archive` export of `HEAD`. The
-`seed` step runs without `--remote`, as the old workflow did, so with wrangler 3 it only touches
-local D1 state; seed the production database by hand with `--remote` when needed.
+`HEAD` equals `origin/<branch>`, and it builds from a clean `git archive` export of `HEAD`.
+`seed` works on the remote database: it applies `SCHEMA_SQL` from `src/db.ts` (all
+`CREATE ... IF NOT EXISTS`, the same statements the Worker runs on its first request) and loads
+`data/seed.sql` only while the `writers` table is empty, so it is safe to rerun.
 
 ### Email (Optional)
 

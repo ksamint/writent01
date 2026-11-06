@@ -2,13 +2,20 @@ name = "writer-tracker"
 main = "src/index.ts"
 compatibility_date = "2025-04-01"
 
+# The Worker serves the UI from public/ (same origin as /api and /mcp).
+[assets]
+directory = "./public"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "writer-tracker-db"
-database_id = ""
+# Placeholder: wrangler does not expand it. scripts/deploy.sh fills it in from
+# CLOUDFLARE_D1_DATABASE_ID inside its throwaway export, never in this file.
+database_id = "${CLOUDFLARE_D1_DATABASE_ID}"
 
+# WRITER_TRACKER_API_KEY is a secret, not a var (a var of the same name
+# would clash with it): wrangler secret put WRITER_TRACKER_API_KEY
 [vars]
-WRITER_TRACKER_API_KEY = ""
 SENDING_DOMAIN = ""
 MAIL_TO = ""
 

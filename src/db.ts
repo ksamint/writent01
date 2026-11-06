@@ -2,8 +2,9 @@ import type { D1Database } from '@cloudflare/workers-types';
 
 // ── Schema ──────────────────────────────────────────────
 
-export async function initDB(db: D1Database): Promise<void> {
-  await db.exec(`
+// One statement per `;`. Also applied to the remote database by
+// scripts/deploy.sh seed, so keep it to CREATE ... IF NOT EXISTS.
+export const SCHEMA_SQL = `
     CREATE TABLE IF NOT EXISTS writers (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -68,7 +69,16 @@ export async function initDB(db: D1Database): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_articles_url ON articles(url);
     CREATE INDEX IF NOT EXISTS idx_articles_tags ON articles(tags);
     CREATE INDEX IF NOT EXISTS idx_writers_type ON writers(type);
-  `);
+`;
+
+export async function initDB(db: D1Database): Promise<void> {
+  // D1's exec() runs every line as its own statement, so multi-line
+  // CREATE TABLEs fail there; run the statements as one batch instead.
+  const statements = SCHEMA_SQL.split(';')
+    .map((sql) => sql.trim())
+    .filter((sql) => sql.length > 0)
+    .map((sql) => db.prepare(sql));
+  await db.batch(statements);
 }
 
 // ── Writers ─────────────────────────────────────────────

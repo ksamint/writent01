@@ -633,12 +633,10 @@ app.post('/mcp/tools/call', async (c) => {
   }
 });
 
-// ── Static file serving (catch-all for Pages fallback) ─
+// ── Static files ───────────────────────────────────────
 
-// If you're serving frontend from the same Worker, uncomment:
-// app.get('/*', serveStatic({ root: './public' }));
-
-// For Cloudflare Pages, this isn't needed — Pages handles static files.
+// public/ is served by Workers static assets ([assets] in wrangler.toml):
+// requests that match a file never reach this app.
 
 // ── Export ─────────────────────────────────────────────
 
